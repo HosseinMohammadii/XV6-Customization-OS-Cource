@@ -95,5 +95,5 @@ int
 sys_getppid(void)
 {
  
-  return 0;
+  return proc->parent->pid;
 }
