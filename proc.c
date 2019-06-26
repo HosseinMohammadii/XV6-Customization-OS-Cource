@@ -112,6 +112,10 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
+  p->rtime = 0;
+
+  p->ctime = ticks;
+
   return p;
 }
 

@@ -43,6 +43,12 @@ sys_getpid(void)
 }
 
 int
+sys_getPerformanceData(void)
+{
+  return 0;
+}
+
+int
 sys_sbrk(void)
 {
   int addr;
