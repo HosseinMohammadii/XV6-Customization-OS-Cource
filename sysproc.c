@@ -43,12 +43,6 @@ sys_getpid(void)
 }
 
 int
-sys_getPerformanceData(void)
-{
-  return 0;
-}
-
-int
 sys_sbrk(void)
 {
   int addr;
@@ -101,4 +95,23 @@ int
 sys_getppid(void)
 {
   return myproc()->parent->pid;
+}
+
+int
+sys_getPerformanceData(void)
+{
+  
+  char *rtime;
+  char *wtime ;
+  
+
+  argstr(0, &wtime);
+  argstr(1, &rtime);
+
+  *rtime = myproc()->rtime;
+  *wtime = myproc()->etime-(myproc()->ctime)-(myproc()->rtime);
+  cprintf("etime: %d  ctime: %d  rtime: %d  \n", myproc()->etime,
+  myproc()->ctime , myproc()->rtime);
+  
+  return 1;
 }

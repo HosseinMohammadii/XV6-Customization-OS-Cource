@@ -48,12 +48,34 @@ trap(struct trapframe *tf)
 
   switch(tf->trapno){
   case T_IRQ0 + IRQ_TIMER:
+  // cprintf("hoy 11 \n");
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
+      // cprintf("hoy 22 \n");
+      // if(myproc()->state == RUNNING)
+      //   {
+      //     // myproc()->rtime = (myproc()->rtime)+1;
+      //     cprintf("hoy 33");
+      //   }
+
+      // if(myproc()){
+      // myproc()->rtime = (myproc()->rtime)+1;
+      // cprintf("rtime incremented and rtime is: %d \n" 
+      // , myproc()->rtime)
+      // }
+
       wakeup(&ticks);
       release(&tickslock);
     }
+    // if(myproc()){
+    //   myproc()->rtime++;
+    // }
+    if(myproc()){
+      myproc()->rtime = (myproc()->rtime)+1;
+      // cprintf("rtime incremented and rtime is: %d \n" 
+      // , myproc()->rtime);
+      }
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
@@ -80,9 +102,16 @@ trap(struct trapframe *tf)
 
   //PAGEBREAK: 13
   default:
-    if(myproc() == 0 || (tf->cs&3) == 0){
+    if(myproc() == 0){
       // In kernel, it must be our mistake.
-      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+      cprintf("Avvali unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+              tf->trapno, cpuid(), tf->eip, rcr2());
+      panic("trap");
+    }
+
+    if((tf->cs&3) == 0){
+      // In kernel, it must be our mistake.
+      cprintf("Dovvomi unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
               tf->trapno, cpuid(), tf->eip, rcr2());
       panic("trap");
     }

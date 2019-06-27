@@ -88,6 +88,10 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
+  p->rtime = 0;
+  // p->etime = 0;
+  p->ctime = ticks;
+
 
   release(&ptable.lock);
 
@@ -112,9 +116,8 @@ found:
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
 
-  p->rtime = 0;
+  // p->rtime = 0;
 
-  p->ctime = ticks;
 
   return p;
 }
@@ -266,7 +269,11 @@ exit(void)
   }
 
   // Jump into the scheduler, never to return.
+  curproc->etime = ticks;
+  cprintf("exit timrmrm :  %d  and curproc etime :  %d \n"
+   , ticks , curproc->etime);
   curproc->state = ZOMBIE;
+  
   sched();
   panic("zombie exit");
 }
