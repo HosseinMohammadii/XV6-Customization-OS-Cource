@@ -13,6 +13,7 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
+uint COUNTER;
 
 void
 tvinit(void)
@@ -52,6 +53,7 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
+      COUNTER++;
       // cprintf("hoy 22 \n");
       // if(myproc()->state == RUNNING)
       //   {
@@ -73,6 +75,7 @@ trap(struct trapframe *tf)
     // }
     if(myproc()){
       myproc()->rtime = (myproc()->rtime)+1;
+      
       // cprintf("rtime incremented and rtime is: %d \n" 
       // , myproc()->rtime);
       }

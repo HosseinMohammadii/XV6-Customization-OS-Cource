@@ -118,6 +118,8 @@ void            setproc(struct proc*);
 void            sleep(void*, struct spinlock*);
 void            userinit(void);
 int             wait(void);
+int             getPerformanceDato(int*, int*);
+int             getPerformanceDaty(int*, int*);
 void            wakeup(void*);
 void            yield(void);
 
@@ -162,6 +164,7 @@ void            timerinit(void);
 // trap.c
 void            idtinit(void);
 extern uint     ticks;
+extern uint     COUNTER;
 void            tvinit(void);
 extern struct spinlock tickslock;
 

@@ -97,21 +97,47 @@ sys_getppid(void)
   return myproc()->parent->pid;
 }
 
+// int
+// sys_getPerformanceData(void)
+// {
+  
+//   char *rtime;
+//   char *wtime ;
+  
+
+//   argstr(0, &wtime);
+//   argstr(1, &rtime);
+
+//   *rtime = myproc()->rtime;
+//   *wtime = myproc()->etime-(myproc()->ctime)-(myproc()->rtime);
+//   cprintf("etime: %d  ctime: %d  rtime: %d  \n", myproc()->etime,
+//   myproc()->ctime , myproc()->rtime);
+  
+//   return 1;
+// }
+
+// int
+// sys_getPerformanceDato(void)
+// {
+  
+//   int *wtime, *rtime;
+//   if (argptr(0, (void*)&wtime, sizeof(wtime)) < 0)
+//     return -1;
+//   if (argptr(1, (void*)&rtime, sizeof(rtime)) < 0)
+//     return -1;
+//   getPerformanceData(wtime, rtime );
+//   return 1;
+// }
+
 int
 sys_getPerformanceData(void)
 {
   
-  char *rtime;
-  char *wtime ;
-  
-
-  argstr(0, &wtime);
-  argstr(1, &rtime);
-
-  *rtime = myproc()->rtime;
-  *wtime = myproc()->etime-(myproc()->ctime)-(myproc()->rtime);
-  cprintf("etime: %d  ctime: %d  rtime: %d  \n", myproc()->etime,
-  myproc()->ctime , myproc()->rtime);
-  
+  int *wtime, *rtime;
+  if (argptr(0, (void*)&wtime, sizeof(wtime)) < 0)
+    return -1;
+  if (argptr(1, (void*)&rtime, sizeof(rtime)) < 0)
+    return -1;
+  getPerformanceDato(wtime, rtime );
   return 1;
 }
