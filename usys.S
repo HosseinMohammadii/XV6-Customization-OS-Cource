@@ -31,6 +31,7 @@ SYSCALL(sleep)
 SYSCALL(uptime)
 SYSCALL(getppid)
 SYSCALL(getPerformanceData)
+SYSCALL(nice)
 
 
 

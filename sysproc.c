@@ -138,6 +138,12 @@ sys_getPerformanceData(void)
     return -1;
   if (argptr(1, (void*)&rtime, sizeof(rtime)) < 0)
     return -1;
-  getPerformanceDato(wtime, rtime );
-  return 1;
+  
+  return getPerformanceDato(wtime, rtime );
+}
+
+int
+sys_nice(void)
+{
+  return nice();
 }

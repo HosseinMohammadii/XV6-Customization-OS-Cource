@@ -22,4 +22,5 @@
 #define SYS_close  21
 #define SYS_getppid 22
 #define SYS_getPerformanceData	23
+#define SYS_nice	24
 // #define SYS_getPerformanceDato	24

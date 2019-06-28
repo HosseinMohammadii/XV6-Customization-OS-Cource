@@ -12,6 +12,37 @@ struct {
   struct proc proc[NPROC];
 } ptable;
 
+
+struct {
+  int front, rear, size;
+  struct proc proc[NPROC];
+} queue;
+
+struct {
+  int front, rear, size;
+  struct proc proc[NPROC];
+} midqueue;
+
+// struct {
+//   int front, rear, size;
+//   struct proc proc[NPROC];
+// } hqueue;
+
+// struct {
+//   int front, rear, size;
+//   struct proc proc[NPROC];
+// } mqueue;
+
+// struct {
+//   int front, rear, size;
+//   struct proc proc[NPROC];
+// } lqueue;
+
+struct node {
+   struct proc *data;
+   struct node *next;
+};
+
 static struct proc *initproc;
 
 int nextpid = 1;
@@ -91,7 +122,8 @@ found:
   p->rtime = 0;
   // p->etime = 0;
   p->ctime = ticks;
-  // enqueue(p);
+  p->priority = 3;
+  
 
 
   release(&ptable.lock);
@@ -157,6 +189,15 @@ userinit(void)
   acquire(&ptable.lock);
 
   p->state = RUNNABLE;
+  #ifdef FRR
+  enqueue(p);
+  #endif
+
+  #ifdef MLQ
+  if(p->priority == 2){
+    midenqueue(p);
+  }
+  #endif
 
   release(&ptable.lock);
 }
@@ -223,6 +264,16 @@ fork(void)
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;
+  #ifdef FRR
+  enqueue(np);
+  #endif
+
+  #ifdef MLQ
+  if(p->priority == 2){
+    midenqueue(np);
+  }
+  #endif
+  
 
   release(&ptable.lock);
 
@@ -327,7 +378,7 @@ wait(void)
 
 
 int
-wait2(int *wtime, int *rtime)
+getPerformanceDatu(int *wtime, int *rtime)
 {
   struct proc *p;
   int havekids, pid;
@@ -343,9 +394,9 @@ wait2(int *wtime, int *rtime)
       havekids = 1;
       if(p->state == ZOMBIE){
         // Found one.
-        *rtime = p->rtime;
-        *wtime = p->etime-(p->ctime)-(p->rtime);
         pid = p->pid;
+        *rtime = curproc->rtime+1;
+        *wtime = ticks -(curproc->ctime)-(curproc->rtime);
         kfree(p->kstack);
         p->kstack = 0;
         freevm(p->pgdir);
@@ -353,10 +404,11 @@ wait2(int *wtime, int *rtime)
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
-        p->ctime = 0;
-        p->rtime = 0;
-        p->etime = 0;
         p->state = UNUSED;
+        p->rtime=0;
+        p->ctime=0;
+        p->etime=0;
+        p->priority = 3;
         release(&ptable.lock);
         return pid;
       }
@@ -431,14 +483,16 @@ int getPerformanceData(int *wtime, int *rtime) {
 
 int getPerformanceDato(int *wtime, int *rtime) {
   // struct proc *p;
+  int pid;
   struct proc *curproc = myproc();
   acquire(&ptable.lock);
+  pid = curproc->pid;
   *rtime = curproc->rtime+1;
   *wtime = ticks -(curproc->ctime)-(curproc->rtime);
   cprintf("etime: %d  ctime: %d  rtime: %d  \n", curproc->etime,
   curproc->ctime , curproc->rtime);
   release(&ptable.lock);
-  return 1;
+  return pid;
 }
 
 //PAGEBREAK: 42
@@ -469,28 +523,34 @@ scheduler(void)
         continue;
       c->proc = p;
       switchuvm(p);
+      p->tickCounter = 0;
       p->state = RUNNING;
       swtch(&(c->scheduler), p->context);
       switchkvm();
       c->proc = 0;
     }  
     
-    #else
+    #endif
+    // #else
+
 
     #ifdef FRR 
-    
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-      c->proc = 0;
+    while(queue.size>0){
+      p = dequeue();
+      if(p->state == RUNNABLE){
+        c->proc = p;
+        switchuvm(p);
+        p->tickCounter = 0;
+        p->state = RUNNING;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+        break;
+      }
     }
     
-    #else
+    #endif
+    // #else
     
      
     #ifdef GRT
@@ -511,21 +571,81 @@ scheduler(void)
       p = minP;
       c->proc = p;
       switchuvm(p);
+      p->tickCounter = 0;
       p->state = RUNNING;
       swtch(&(c->scheduler), p->context);
       switchkvm();
       c->proc = 0;
       }
     
-    #else
+
+    #endif
+    // #else
     
 
     #ifdef MLQ
+    struct proc *minP = NULL;
+    bool haselement = false;
+      for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->state != RUNNABLE)
+          continue;
+        if(p->state == RUNNABLE && p->priority==3){
+            if (minP!=NULL){
+              if((p->rtime/(ticks - p->ctime)) < (minP->rtime/(ticks - minP->ctime)))
+                minP = p;
+            }
+            else{
+              minP = p;
+              haselement=true;
+            }
+        }
+      }
+      if(minP != NULL){
+      p = minP;
+      c->proc = p;
+      switchuvm(p);
+      p->state = RUNNING;
+      swtch(&(c->scheduler), p->context);
+      switchkvm();
+      c->proc = 0;
+      }
+
+      bool haselement2 = false;
+      if(!haselement){
+        while(midqueue.size>0){
+          p = middequeue();
+          if(p->state == RUNNABLE){
+            haselement2=true;
+            c->proc = p;
+            switchuvm(p);
+            p->tickCounter = 0;
+            p->state = RUNNING;
+            swtch(&(c->scheduler), p->context);
+            switchkvm();
+            c->proc = 0;
+            break;
+          }
+        }
+      }
+
+      if(!haselement && !haselement2){
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+          if(p->state != RUNNABLE)
+            continue;
+          c->proc = p;
+          switchuvm(p);
+          p->tickCounter = 0;
+          p->state = RUNNING;
+          swtch(&(c->scheduler), p->context);
+          switchkvm();
+          c->proc = 0;
+        }
+      }
 
     #endif
-    #endif
-    #endif
-    #endif
+    // #endif
+    // #endif
+    // #endif
     
     
 
@@ -562,32 +682,39 @@ sched(void)
 }
 
 // Give up the CPU for one scheduling round.
-// void
-// yield(void)
-// {
-//   // myproc()->rtime = (myproc()->rtime)+1;
-//   // myproc()->tickCounter = (myproc()->tickCounter)+1;
-
-//   if(myproc()->tickCounter < QUANTA){}
-//   else{
-//     acquire(&ptable.lock);  //DOC: yieldlock
-//     // #ifdef FRR
-//     // enqueue(myproc());
-//     // #endif
-//     myproc()->state = RUNNABLE;
-//     sched();
-//     release(&ptable.lock);
-//   }
-// }
-
 void
 yield(void)
 {
-  acquire(&ptable.lock);  //DOC: yieldlock
-  myproc()->state = RUNNABLE;
-  sched();
-  release(&ptable.lock);
+  if(myproc()->tickCounter < QUANTA){
+
+  }
+  else{
+    acquire(&ptable.lock);  //DOC: yieldlock
+    #ifdef FRR
+    enqueue(myproc());
+    #endif
+    #ifdef MLQ
+      if(p->priority == 2){
+        midenqueue(myproc());
+      }
+    #endif
+    myproc()->state = RUNNABLE;
+    sched();
+    release(&ptable.lock);
+  }
 }
+
+// void
+// yield(void)
+// {
+//   acquire(&ptable.lock);  //DOC: yieldlock
+//   myproc()->state = RUNNABLE;
+//   #ifdef FRR
+//   enqueue(myproc());
+//   #endif
+//   sched();
+//   release(&ptable.lock);
+// }
 
 
 // A fork child's very first scheduling by scheduler()
@@ -659,9 +786,17 @@ wakeup1(void *chan)
   struct proc *p;
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->state == SLEEPING && p->chan == chan)
+    if(p->state == SLEEPING && p->chan == chan){
       p->state = RUNNABLE;
-      // enqueue(p);
+      #ifdef FRR
+      enqueue(myproc());
+      #endif
+      #ifdef MLQ
+      if(p->priority == 2){
+        midenqueue(myproc());
+      }
+      #endif
+    }
   }
 }
 
@@ -687,8 +822,17 @@ kill(int pid)
     if(p->pid == pid){
       p->killed = 1;
       // Wake process from sleep if necessary.
-      if(p->state == SLEEPING)
+      if(p->state == SLEEPING){
         p->state = RUNNABLE;
+          #ifdef FRR
+          enqueue(myproc());
+          #endif
+          #ifdef MLQ
+          if(p->priority == 2){
+            midenqueue(p);
+          }
+          #endif
+      }
       release(&ptable.lock);
       return 0;
     }
@@ -733,3 +877,216 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+void
+enqueue(struct proc proc){
+  if(queue.size<NPROC)
+    {
+        if(queue.size<0)
+        {
+            queue.proc[0] = proc;
+            queue.front = queue.rear = 0;
+            queue.size = 1;
+        }
+        else if(queue.rear == NPROC-1)
+        {
+            queue.proc[0] = proc;
+            queue.rear = 0;
+            queue.size++;
+        }
+        else
+        {
+          queue.rear++;
+          queue.size++;
+          queue.proc[queue.rear] = proc;
+        }
+    }
+    else
+    {
+        cprintf("Queue is full\n");
+    }
+}
+
+void
+midenqueue(struct proc proc){
+  if(midqueue.size<NPROC)
+    {
+        if(midqueue.size<0)
+        {
+            midqueue.proc[0] = proc;
+            midqueue.front = midqueue.rear = 0;
+            midqueue.size = 1;
+        }
+        else if(midqueue.rear == NPROC-1)
+        {
+            midqueue.proc[0] = proc;
+            midqueue.rear = 0;
+            midqueue.size++;
+        }
+        else
+        {
+          midqueue.rear++;
+          midqueue.size++;
+          midqueue.proc[midqueue.rear] = proc;
+        }
+    }
+    else
+    {
+        cprintf("Queue is full\n");
+    }
+}
+
+struct proc*
+dequeue(){
+  struct proc *p = myproc();
+  if(queue.size<=0)
+    {
+        cprintf("Queue is empty\n");
+    }
+  else
+    {
+        if(queue.front == NPROC-1)
+        {
+            queue.front = 0;
+            queue.size--;
+            p = &queue.proc[NPROC-1];
+        }
+        else{
+            queue.front++;
+            queue.size--;
+            p = &queue.proc[queue.front-1];
+        }
+    }
+    
+    return p;
+}
+
+struct proc*
+middequeue(){
+  struct proc *p = myproc();
+  if(midqueue.size<=0)
+    {
+        cprintf("Queue is empty\n");
+    }
+  else
+    {
+        if(midqueue.front == NPROC-1)
+        {
+            midqueue.front = 0;
+            midqueue.size--;
+            p = &midqueue.proc[NPROC-1];
+        }
+        else{
+            midqueue.front++;
+            midqueue.size--;
+            p = &midqueue.proc[midqueue.front-1];
+        }
+    }
+    
+    return p;
+}
+
+int
+nice(void){
+  
+  acquire(&ptable.lock);
+  if(myproc()->priority > 1){
+    myproc()->priority--;
+    // if()
+    return 1;
+  }
+  else{
+    return 0;
+  }
+  release(&ptable.lock);
+}
+
+// void insert_at_end(struct proc *pp) {
+//    struct node *t, *temp;
+   
+//    t = (struct node*)malloc(sizeof(struct node));
+//    count++;
+   
+//    if (start == NULL) {
+//       start = t;
+//       start->data = pp;
+//       start->next = NULL;
+//       return;
+//    }
+//    temp = start;
+   
+//    while (temp->next != NULL)
+//       temp = temp->next;  
+   
+//    temp->next = t;
+//    t->data    = x;
+//    t->next    = NULL;
+// }
+
+// void delete_from_begin() {
+//    struct node *t;
+//    int n;
+   
+//    if (start == NULL) {
+//       printf("Linked list is already empty.\n");
+//       return;
+//    }
+   
+//    n = start->data;
+//    t = start->next;
+//    free(start);
+//    start = t;
+//    count--;
+   
+//    printf("%d deleted from beginning successfully.\n", n);
+// }
+ 
+// void delete_from_end() {
+//    struct node *t, *u;
+//    int n;
+     
+//    if (start == NULL) {
+//       printf("Linked list is already empty.\n");
+//       return;
+//    }
+   
+//    count--;
+   
+//    if (start->next == NULL) {
+//       n = start->data;
+//       free(start);
+//       start = NULL;
+//       printf("%d deleted from end successfully.\n", n);
+//       return;
+//    }
+   
+//    t = start;
+   
+//    while (t->next != NULL) {
+//       u = t;
+//       t = t->next;
+//    }
+   
+//    n = t->data;
+//    u->next = NULL;
+//    free(t);
+   
+//    printf("%d deleted from end successfully.\n", n);
+// }
+
+
+// struct proc*
+// delete(int pid){
+//   struct node p*;
+//   struct proc pp*;
+//   struct node t*;
+//   while (t->next != NULL ) {
+//     if(t->next->data->pid !=pid){
+//       p = t;
+//       t = t->next;
+//       break
+//     }
+//       p = t;
+//       t = t->next;
+//    }
+// }

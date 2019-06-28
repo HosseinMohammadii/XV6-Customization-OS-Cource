@@ -120,8 +120,11 @@ void            userinit(void);
 int             wait(void);
 int             getPerformanceDato(int*, int*);
 int             getPerformanceDaty(int*, int*);
+int             getPerformanceDatu(int*, int*);
 void            wakeup(void*);
 void            yield(void);
+int             nice(void);
+
 
 // swtch.S
 void            swtch(struct context**, struct context*);
