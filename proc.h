@@ -52,7 +52,7 @@ struct proc {
   int ctime;                   // Process creation time
   int etime;                   // Process end time
   int rtime;                   // Process total running time
-
+  int tickCounter;             // Process ticks have every time slice
 };
 
 // Process memory is laid out contiguously, low addresses first:

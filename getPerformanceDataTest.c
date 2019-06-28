@@ -9,7 +9,7 @@ int main(void){
 
 		if(child == 0){
 		
-			for(int i = 0 ; i < 500 ; i++){}
+			for(int i = 0 ; i < 5000 ; i++){}
 			printf(1, "child: ");
 			getPerformanceData(&wtime,&rtime);
 			printf(1,"wtime: %d and rtime: %d getpid: %d \n", wtime, rtime , getpid());

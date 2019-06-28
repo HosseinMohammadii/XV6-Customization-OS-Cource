@@ -53,7 +53,7 @@ trap(struct trapframe *tf)
     if(cpuid() == 0){
       acquire(&tickslock);
       ticks++;
-      COUNTER++;
+      // COUNTER++;
       // cprintf("hoy 22 \n");
       // if(myproc()->state == RUNNING)
       //   {
@@ -63,8 +63,7 @@ trap(struct trapframe *tf)
 
       // if(myproc()){
       // myproc()->rtime = (myproc()->rtime)+1;
-      // cprintf("rtime incremented and rtime is: %d \n" 
-      // , myproc()->rtime)
+      // myproc()->tickCounter = (myproc()->tickCounter)+1;
       // }
 
       wakeup(&ticks);
@@ -73,12 +72,18 @@ trap(struct trapframe *tf)
     // if(myproc()){
     //   myproc()->rtime++;
     // }
+    // if(myproc()){
+    //   myproc()->rtime = (myproc()->rtime)+1;
+      
+    //   // cprintf("rtime incremented and rtime is: %d \n" 
+    //   // , myproc()->rtime);
+    //   }
+
     if(myproc()){
       myproc()->rtime = (myproc()->rtime)+1;
-      
-      // cprintf("rtime incremented and rtime is: %d \n" 
-      // , myproc()->rtime);
+      myproc()->tickCounter = (myproc()->tickCounter)+1;
       }
+      
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_IDE:
