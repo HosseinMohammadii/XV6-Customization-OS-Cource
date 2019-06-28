@@ -188,7 +188,10 @@ UPROGS=\
 	_wc\
 	_zombie\
 	_ppidtest\
-	_getPerformanceDataTest
+	_getPerformanceDataTest\
+	_rrsanity\
+	_frrtest\
+	_sanity
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)

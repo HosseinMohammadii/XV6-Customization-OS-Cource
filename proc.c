@@ -483,16 +483,18 @@ int getPerformanceData(int *wtime, int *rtime) {
 
 int getPerformanceDato(int *wtime, int *rtime) {
   // struct proc *p;
-  int pid;
+  // int pid;
+  int priority;
   struct proc *curproc = myproc();
   acquire(&ptable.lock);
-  pid = curproc->pid;
+  // pid = curproc->pid;
+  priority = curproc->priority;
   *rtime = curproc->rtime+1;
   *wtime = ticks -(curproc->ctime)-(curproc->rtime);
   cprintf("etime: %d  ctime: %d  rtime: %d  \n", curproc->etime,
   curproc->ctime , curproc->rtime);
   release(&ptable.lock);
-  return pid;
+  return priority;
 }
 
 //PAGEBREAK: 42
@@ -542,6 +544,9 @@ scheduler(void)
         switchuvm(p);
         p->tickCounter = 0;
         p->state = RUNNING;
+        for(int i = queue.front ; i < queue.size ; i++){
+          cprintf("<%d>" , queue.proc[i%NPROC]);
+        }
         swtch(&(c->scheduler), p->context);
         switchkvm();
         c->proc = 0;
@@ -614,7 +619,7 @@ scheduler(void)
       if(!haselement){
         while(midqueue.size>0){
           p = middequeue();
-          if(p->state == RUNNABLE){
+          if(p->state == RUNNABLE && p->priority==2){
             haselement2=true;
             c->proc = p;
             switchuvm(p);
@@ -630,7 +635,7 @@ scheduler(void)
 
       if(!haselement && !haselement2){
         for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-          if(p->state != RUNNABLE)
+          if(p->state != RUNNABLE && p->priority==1)
             continue;
           c->proc = p;
           switchuvm(p);
